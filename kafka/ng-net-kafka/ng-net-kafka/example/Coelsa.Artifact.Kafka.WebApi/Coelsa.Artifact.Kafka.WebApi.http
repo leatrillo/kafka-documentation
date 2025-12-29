@@ -1,0 +1,6 @@
+@Coelsa.Artifact.Kafka.WebApi_HostAddress = http://localhost:5019
+
+GET {{Coelsa.Artifact.Kafka.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,69 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36518.9
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{015F64B2-901C-4639-9B64-44C0DAEFA2E6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "example", "example", "{66017617-7624-4433-AFC5-40303E71B86E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coelsa.Artifact.Kafka", "src\Coelsa.Artifact.Kafka\Coelsa.Artifact.Kafka.csproj", "{E235A661-E4A8-4402-8A55-BEC5DC31007A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coelsa.Artifact.Kafka.UnitTests", "test\Coelsa.Artifact.Kafka.UnitTests\Coelsa.Artifact.Kafka.UnitTests.csproj", "{9E00583A-E439-4206-8358-7F86CF79403B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coelsa.Artifact.Kafka.WebApi", "example\Coelsa.Artifact.Kafka.WebApi\Coelsa.Artifact.Kafka.WebApi.csproj", "{D463DDA5-16BB-4214-BB6B-6C07696E0241}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coelsa.Artifact.Kafka.Consumer", "example\Coelsa.Artifact.Kafka.Consumer\Coelsa.Artifact.Kafka.Consumer.csproj", "{35AE3AF8-1AD6-4D55-90F0-28518751286E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coelsa.Artifact.Outbox.SqlServer", "src\Coelsa.Artifact.Outbox.SqlServer\Coelsa.Artifact.Outbox.SqlServer.csproj", "{7D34B81C-9254-4954-9314-FD070512A63C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coelsa.Artifact.Kafka.Consumer.WebApi", "example\Coelsa.Artifact.Kafka.Consumer.WebApi\Coelsa.Artifact.Kafka.Consumer.WebApi.csproj", "{73136135-EBEA-4DE6-A17F-775958D20628}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E235A661-E4A8-4402-8A55-BEC5DC31007A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E235A661-E4A8-4402-8A55-BEC5DC31007A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E235A661-E4A8-4402-8A55-BEC5DC31007A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E235A661-E4A8-4402-8A55-BEC5DC31007A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E00583A-E439-4206-8358-7F86CF79403B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E00583A-E439-4206-8358-7F86CF79403B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E00583A-E439-4206-8358-7F86CF79403B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E00583A-E439-4206-8358-7F86CF79403B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D463DDA5-16BB-4214-BB6B-6C07696E0241}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D463DDA5-16BB-4214-BB6B-6C07696E0241}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D463DDA5-16BB-4214-BB6B-6C07696E0241}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D463DDA5-16BB-4214-BB6B-6C07696E0241}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35AE3AF8-1AD6-4D55-90F0-28518751286E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35AE3AF8-1AD6-4D55-90F0-28518751286E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35AE3AF8-1AD6-4D55-90F0-28518751286E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35AE3AF8-1AD6-4D55-90F0-28518751286E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D34B81C-9254-4954-9314-FD070512A63C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D34B81C-9254-4954-9314-FD070512A63C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D34B81C-9254-4954-9314-FD070512A63C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D34B81C-9254-4954-9314-FD070512A63C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73136135-EBEA-4DE6-A17F-775958D20628}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73136135-EBEA-4DE6-A17F-775958D20628}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73136135-EBEA-4DE6-A17F-775958D20628}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73136135-EBEA-4DE6-A17F-775958D20628}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E235A661-E4A8-4402-8A55-BEC5DC31007A} = {015F64B2-901C-4639-9B64-44C0DAEFA2E6}
+		{9E00583A-E439-4206-8358-7F86CF79403B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{D463DDA5-16BB-4214-BB6B-6C07696E0241} = {66017617-7624-4433-AFC5-40303E71B86E}
+		{35AE3AF8-1AD6-4D55-90F0-28518751286E} = {66017617-7624-4433-AFC5-40303E71B86E}
+		{7D34B81C-9254-4954-9314-FD070512A63C} = {015F64B2-901C-4639-9B64-44C0DAEFA2E6}
+		{73136135-EBEA-4DE6-A17F-775958D20628} = {66017617-7624-4433-AFC5-40303E71B86E}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3937CF1A-1541-4D52-BFD6-FBE036CADC7A}
+	EndGlobalSection
+EndGlobal

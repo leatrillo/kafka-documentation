@@ -1,0 +1,143 @@
+#PIPELINE PARA RAMA RELEASE
+#El pipeline correra si la rama cumple con los siguientes requisitos
+trigger: 
+  branches:
+    include: 
+    - main
+
+pool: 'Servers-CI'
+
+variables:
+  BuildConfiguration: 'Release'
+  DotNetVersion: 8.x
+  MainProject: Coelsa.Artifact.Kafka
+  RepositoryName: '$(Build.Repository.Name)'
+  ProjectAzName: 'Arquitectura' #nombre del proyecto donde esta el repo
+  projectKeySonarCloud: 'Coelsa_$(RepositoryName)'
+  projectNameSonarCloud: '$(RepositoryName)'
+  ServiceConnectionSonarCloud: 'ArquitecturaSonarCloudSC'
+
+steps:
+  #Tarea para establecer la profundidad de búsqueda, SonarCloud determina que se debe establecer de la siguiente forma
+  #"Los pipelines de Azure tienen habilitada Shallow fetch (recuperacion superficial) de manera predeterminada, 
+  # se debe establecer el valor de fetchDepth en 0 para anular esto y habilitar la recuperación de información en detalle.
+  - checkout: self
+    fetchDepth: 0
+    persistCredentials: true
+
+  #Tarea para instalar el SDK (se deben evaluar las versiones)
+  - task: UseDotNet@2
+    displayName: 'Instalando .NET Core SDK'
+    inputs:
+      packageType: 'sdk'
+      version: '$(DotNetVersion)'
+      includePreviewVersions: false
+
+  #Tarea para instalar la plataforma de test, sirve para impactar el CodeCoverege en SonarCloud
+  - task: VisualStudioTestPlatformInstaller@1
+    displayName: Instalando Visual Studio TestPlatform
+    inputs:
+      versionSelector: 'specificVersion'
+      testPlatformVersion: '17.9.0'
+
+  #Tarea para ejecutar el analisis de dependencias utilizadas
+  #Doc argumentos: https://jeremylong.github.io/DependencyCheck/dependency-check-cli/arguments.html       
+  - task: dependency-check-build-task@6
+    displayName: 'Analisis de Dependencias'
+    inputs:
+      projectName: '$(ProjectAzName) - $(RepositoryName)'
+      scanPath: '**/${{ variables.MainProject }}.csproj'
+      format: 'XML, HTML, JUNIT, JSON, CSV'
+      additionalArguments: '--noupdate --disableOssIndex  --disableYarnAudit'
+
+  #Tarea para ver los resultados en una ventana nueva
+  - task: PublishTestResults@2
+    displayName: 'Publicación de resultados analisis dependencias'
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: 'dependency-check\dependency-check-junit.xml'
+      searchFolder: '$(Common.TestResultsDirectory)'
+      testRunTitle: 'Analisis de dependencias'
+
+  #Tarea para preparar SonarCloud (debe estar siempre antes de la compilacion).
+  #Centrar atencion en SonarCloud (uno por proyecto, projectKey, projectName)
+  #Ver documentacion https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/sonar-qube-prepare-v5?view=azure-pipelines
+  - task: SonarCloudPrepare@3
+    displayName: 'Preparación de SonarCloud'
+    inputs:
+      SonarCloud: '$(ServiceConnectionSonarCloud)'
+      organization: 'coelsa'
+      scannerMode: 'dotnet'
+      projectKey: '$(projectKeySonarCloud)'
+      projectName: '$(projectNameSonarCloud)'
+
+  #Tarea para realizar el Buil de la APP, debe estar después de la preapación de SonarCloud, pero antes del análisis
+  # Ver documentacion https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/dotnet-core-cli-v2?view=azure-pipelines
+  - task: DotNetCoreCLI@2
+    displayName: 'Build $(BuildConfiguration)'
+    inputs:
+      command: 'build'
+      projects: '**/${{ variables.MainProject }}.csproj'
+      arguments: '-c:$(BuildConfiguration)'
+      
+  #Tarea para realizar el test de la app
+  - task: DotNetCoreCLI@2
+    displayName: 'UnitTests $(BuildConfiguration)'
+    inputs:
+      command: 'test'
+      projects: '**/${{ variables.MainProject }}.UnitTests.csproj'
+      arguments: '--collect "Code Coverage"'
+      testRunTitle: 'Test Unitarios'
+
+  #Tarea para realizar el analisis por parte de SonarCloud
+  - task: SonarCloudAnalyze@3
+    displayName: 'Analisis SonarCloud'
+
+  #Tarea para que se publique el analisis en SonarCloud
+  - task: SonarCloudPublish@3
+    displayName: 'Publicacion de resultados SonarCloud'
+    inputs:
+      pollingTimeoutSec: '300'
+
+  #Configurando la version del paquete
+  - task: PowerShell@2
+    displayName: 'Configurando la version'
+    inputs:
+      targetType: 'inline'
+      script: |
+         $xml = [Xml] (Get-Content .\src\${{ variables.MainProject }}\${{ variables.MainProject }}.csproj)
+         $version = $xml.Project.PropertyGroup.PackageVersion
+         $verGit = "v" + $xml.Project.PropertyGroup.PackageVersion
+         $verPkg = $xml.Project.PropertyGroup.PackageVersion
+         echo "##vso[task.setvariable variable=version]$version"
+         echo "##vso[task.setvariable variable=verGit]$verGit"
+         echo "##vso[task.setvariable variable=verPkg]$verPkg"
+         echo $verGit
+         echo $verPkg
+
+  #Build del Nuget
+  - task: DotNetCoreCLI@2
+    displayName: 'Creando NuGet package'
+    inputs:
+      command: 'pack'
+      packagesToPack: '**/${{ variables.MainProject }}.csproj'
+      arguments: '--no-restore -c:$(BuildConfiguration)'
+      versioningScheme: 'byEnvVar'
+      versionEnvVar: verPkg
+
+  #Push del Nuget al Feed Coelsa
+  - task: DotNetCoreCLI@2
+    displayName: 'Subiendo NuGet package al Feed'
+    inputs:
+      command: 'push'
+      packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+      nuGetFeedType: 'internal'
+      publishVstsFeed: '813853b6-d22c-4a74-b1d0-dfa320cf5139'        
+    
+  - task: CmdLine@2
+    displayName: 'Creación de Tag $(verGit)'
+    inputs:
+      script: |
+        git tag -a "$(verGit)" -m "Release Version $(verGit)"
+        git push origin "$(verGit)" 
+      workingDirectory: '$(Build.Repository.LocalPath)'

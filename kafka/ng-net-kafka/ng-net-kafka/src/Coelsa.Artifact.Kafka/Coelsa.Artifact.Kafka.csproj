@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+	<OutputType>Library</OutputType>
+	<PackProject>true</PackProject>
+	<IsPackable>true</IsPackable>
+	<Title>Coelsa Artifact Kafka</Title>
+	<Authors>Equipo de Arquitectura</Authors>
+	<Company>Compensadora Electrónica S.A.</Company>
+	<Description>
+		  Artefacto de manejo de Kafka para los servicios de Coelsa
+
+		  Documentacion: https://dev.azure.com/coelsa/Extensions/_wiki/wikis/Extensions.wiki/184/Kafka
+	</Description>
+	<PackageId>Coelsa.Artifact.Kafka</PackageId>
+	<!--Version Main Release-->
+	<PackageVersion>8.0.0</PackageVersion>
+	<PackageTags>Kafka, Consumer, Producer, Message, Message Broker</PackageTags>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageProjectUrl>https://dev.azure.com/coelsa/Arquitectura/_git/ng-net-Kafka</PackageProjectUrl>
+	<!--Version RC Release-->
+	<Version>8.0.0-RC</Version>
+	<Copyright>Copyright © $([System.DateTime]::Now.Year)</Copyright>
+	<RepositoryType>git</RepositoryType>
+	<RepositoryUrl>https://dev.azure.com/coelsa/Arquitectura/_git/ng-net-Kafka</RepositoryUrl>
+	<IncludeContentInPack>true</IncludeContentInPack>
+	<IncludeBuildOutput>true</IncludeBuildOutput>
+	<ContentTargetFolders>content</ContentTargetFolders>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	<AssemblyVersion>1.0.0.0</AssemblyVersion>
+	<FileVersion>1.0.0.0</FileVersion>
+
+	<DebugType>embedded</DebugType>
+	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.12.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <InternalsVisibleTo Include="Coelsa.Artifact.Kafka.UnitTests" />
+	  <InternalsVisibleTo Include="Coelsa.Artifact.Outbox.SqlServer" />
+  </ItemGroup>
+
+</Project>
