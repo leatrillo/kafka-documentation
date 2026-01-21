@@ -1,0 +1,480 @@
+<div style="background-color: rgba(0, 0, 0, 0.8); border-radius: 60px">
+
+![Banner](/.attachments/banner-d8ceca44-805f-4dd2-b8dc-8d1d3905810d.png =385x120)
+
+</div>  
+   
+
+# Coelsa.Artifact.Kafka
+
+[![.NET Version](https://img.shields.io/badge/.NET-10.0-blue)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![NuGet Version](https://img.shields.io/badge/NuGet-10.0.0--RC-brightgreen)](https://www.nuget.org/)
+
+Paquete NuGet para implementar mensajería con Apache Kafka en aplicaciones .NET 10 utilizando Confluent.Kafka. Este paquete proporciona una solución integral para **producción**, **consumo** de mensajes y **patrón Outbox** con soporte transaccional.
+
+## 📋 Tabla de Contenidos
+
+- [Características](#-características)
+- [Arquitectura](#-arquitectura)
+- [Requisitos](#-requisitos)
+- [Instalación](#-instalación)
+- [Configuración](#-configuración)
+  - [Configuración de Producer](#configuración-de-producer)
+  - [Configuración de Consumer](#configuración-de-consumer)
+  - [Configuración de Outbox](#configuración-de-outbox)
+  - [Configuración en Program.cs](#configuración-en-programcs)
+- [Uso](#-uso)
+  - [Producer (Productor)](#1-producer-productor)
+  - [Consumer (Consumidor)](#2-consumer-consumidor)
+  - [Patrón Outbox](#3-patrón-outbox)
+- [Ejemplos Avanzados](#-ejemplos-avanzados)
+- [Seguridad](#-seguridad)
+- [Troubleshooting](#-troubleshooting)
+- [Documentación Adicional](#-documentación-adicional)
+
+## 🚀 Características
+
+- ✅ **Producer (Queue y Event)**: Envío de mensajes transaccionales y no transaccionales
+- ✅ **Consumer**: Consumo de mensajes con procesamiento asíncrono
+- ✅ **Patrón Outbox**: Garantía de entrega con persistencia en SQL Server
+- ✅ **Mensajes CloudEvents**: Formato estandarizado según especificación CloudEvents
+- ✅ **Soporte transaccional**: Transacciones de Kafka para garantizar entrega
+- ✅ **Background Services**: Procesamiento automático de mensajes en segundo plano
+- ✅ **Alta disponibilidad**: Manejo de reintentos y mensajes huérfanos
+- ✅ **Configuración flexible**: Múltiples opciones de configuración según necesidades
+- ✅ **Compatible con .NET 10**: Aprovecha las últimas características del framework
+
+## 🏗️ Arquitectura
+flowchart LR App["Aplicación\n(.NET 10)"] Producer["Kafka Producer"] Consumer["Kafka Consumer"] Outbox["Outbox Pattern\n(SQL Server)"] Kafka["Apache Kafka\nCluster"]
+
+subgraph Producción
+    App -->|"Envío directo"| Producer
+    App -->|"Envío con Outbox"| Outbox
+    Outbox -->|"Background Service"| Producer
+    Producer -->|"Publicar mensajes"| Kafka
+end
+
+subgraph Consumo
+    Kafka -->|"Leer mensajes"| Consumer
+    Consumer -->|"Procesar"| App
+end
+
+classDef app fill:#d9edf7,stroke:#31708f,color:#31708f
+classDef infra fill:#dff0d8,stroke:#3c763d,color:#3c763d
+classDef pattern fill:#fcf8e3,stroke:#8a6d3b,color:#8a6d3b
+
+class App app
+class Producer,Consumer,Kafka infra
+class Outbox pattern
+
+
+### Componentes Principales
+
+1. **Producer**: Envía mensajes a Kafka (Queue Producer y Event Producer)
+2. **Consumer**: Consume mensajes de tópicos de Kafka
+3. **Outbox Pattern**: Almacena mensajes en SQL Server antes de enviarlos a Kafka
+4. **Background Services**: Procesa mensajes del Outbox automáticamente
+
+## 📦 Requisitos
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) o superior
+- IDE compatible:
+  - [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) (17.12 o superior)
+  - [Visual Studio Code](https://code.visualstudio.com/) con extensión C#
+- Apache Kafka cluster accesible
+- SQL Server (para patrón Outbox)
+- Acceso al repositorio privado de NuGet de Coelsa
+
+## 🔧 Instalación
+
+### 1. Configurar origen de NuGet
+
+Agregue el repositorio privado de Coelsa a sus orígenes de NuGet.
+
+**Mediante archivo .csproj:**
+<PackageReference Include="Coelsa.Artifact.Kafka" Version="10.0.0-RC" />
+
+
+## ⚙️ Configuración
+
+### Configuración de Producer
+
+Agregue el siguiente bloque en `appsettings.json`:
+
+{ "KafkaSettings": { "QueueProducer": { "BootstrapServers": "localhost:9092", "EnableIdempotence": true, "EnableTransaction": false, "Acks": "all", "MaxInFlight": 5, "LingerMs": 10, "CompressionType": "snappy", "Security": { "Username": "", "Password": "" } }, "EventProducer": { "BootstrapServers": "localhost:9092", "EnableIdempotence": true, "EnableTransaction": false, "Acks": "all", "MaxInFlight": 5, "LingerMs": 10, "CompressionType": "snappy", "Security": { "Username": "", "Password": "" } } } }
+
+
+#### Descripción de Parámetros de Producer
+
+| Parámetro | Tipo | Descripción | Valor por defecto |
+|-----------|------|-------------|-------------------|
+| `BootstrapServers` | string | Lista de brokers de Kafka | `"localhost:9092"` |
+| `EnableIdempotence` | bool | Habilita producción idempotente | `true` |
+| `EnableTransaction` | bool | Habilita transacciones de Kafka | `false` |
+| `Acks` | string | Nivel de confirmación: `0`, `1`, `all` | `"all"` |
+| `MaxInFlight` | int | Máximo de requests sin respuesta | `5` |
+| `LingerMs` | int | Tiempo de espera para agrupar mensajes (ms) | `10` |
+| `CompressionType` | string | Tipo de compresión: `none`, `gzip`, `snappy`, `lz4`, `zstd` | `"snappy"` |
+| `Username` | string | Usuario para autenticación SASL | `""` |
+| `Password` | string | Contraseña para autenticación SASL | `""` |
+
+### Configuración de Consumer
+
+{ "KafkaSettings": { "Consumer": { "BootstrapServers": "localhost:9092", "GroupId": "my-consumer-group", "AutoOffsetReset": "earliest", "EnableAutoCommit": false, "Security": { "Username": "", "Password": "" } } } }
+
+
+#### Descripción de Parámetros de Consumer
+
+| Parámetro | Tipo | Descripción | Valor por defecto |
+|-----------|------|-------------|-------------------|
+| `BootstrapServers` | string | Lista de brokers de Kafka | `"localhost:9092"` |
+| `GroupId` | string | Identificador del grupo de consumidores | `""` |
+| `AutoOffsetReset` | string | Comportamiento inicial: `earliest`, `latest`, `none` | `"earliest"` |
+| `EnableAutoCommit` | bool | Habilita commit automático de offsets | `false` |
+| `Username` | string | Usuario para autenticación SASL | `""` |
+| `Password` | string | Contraseña para autenticación SASL | `""` |
+
+### Configuración de Outbox
+
+{ "OutboxOptions": { "BatchSize": 100, "OrphanCleanupEnabled": true, "OrphanageTimeout": "00:05:00", "MaxConcurrency": 10, "OrphanCleanupProbability": 0.1, "SqlServer": { "ConnectionString": "Server=localhost;Database=MyDb;Trusted_Connection=True;", "Initials": "APP", "OrphanageTimeout": "00:05:00", "BatchSizeDeleteProcessed": 1000, "CommandTimeoutSeconds": 300 } } }
+
+
+#### Descripción de Parámetros de Outbox
+
+| Parámetro | Descripción | Valor por defecto |
+|-----------|-------------|-------------------|
+| `BatchSize` | Cantidad de mensajes a procesar por lote | `100` |
+| `OrphanCleanupEnabled` | Habilita limpieza de mensajes huérfanos | `true` |
+| `OrphanageTimeout` | Tiempo para considerar un mensaje huérfano | `"00:05:00"` |
+| `MaxConcurrency` | Nivel de concurrencia para procesamiento | `10` |
+| `OrphanCleanupProbability` | Probabilidad de ejecutar limpieza (0.0 - 1.0) | `0.1` |
+| `Initials` | Prefijo para tablas de base de datos | `""` |
+| `BatchSizeDeleteProcessed` | Cantidad de mensajes procesados a eliminar | `1000` |
+| `CommandTimeoutSeconds` | Timeout para comandos SQL | `300` |
+
+### Configuración en Program.cs
+
+#### Para Producer
+
+using Coelsa.Artifact.Kafka;
+var builder = WebApplication.CreateBuilder(args);
+// Registrar producer (Queue y Event) builder.Services.AddCoelsaProducerKafka(builder.Configuration);
+var app = builder.Build(); app.Run();
+
+
+#### Para Consumer
+
+using Coelsa.Artifact.Kafka;
+var builder = WebApplication.CreateBuilder(args);
+// Registrar consumer builder.Services.AddCoelsaConsumerKafka(builder.Configuration);
+var app = builder.Build(); app.Run();
+
+
+#### Para Outbox Service
+
+using Coelsa.Artifact.Kafka.Outbox;
+var builder = WebApplication.CreateBuilder(args);
+// Registrar Outbox Service con Background Service builder.Services.AddCoelsaOutboxService( builder.Configuration, builder.Environment.EnvironmentName );
+// O solo para producir mensajes con Outbox builder.Services.AddCoelsaOutboxProducer(builder.Configuration);
+var app = builder.Build(); app.Run();
+
+
+## 📘 Uso
+
+### 1. Producer (Productor)
+
+#### Envío Básico con Queue Producer
+
+using Coelsa.Artifact.Kafka.Handler.Interfaces; using Coelsa.Artifact.Kafka.Model;
+[ApiController] [Route("api/[controller]")] public class OrdersController : ControllerBase { private readonly ICoelsaKafkaProducer _producer;
+
+public OrdersController(ICoelsaKafkaProducer producer)
+{
+    _producer = producer;
+}
+
+[HttpPost]
+public async Task<IActionResult> CreateOrder([FromBody] Order order)
+{
+    // Crear el mensaje CloudEvents
+    var message = new CoelsaMessage<Order>(
+        data: order,
+        type: "order.created",
+        source: "urn:coelsa.com.ar/orders/service"
+    )
+    {
+        Id = Guid.NewGuid().ToString()
+    };
+
+    // Configurar el tópico
+    var config = new MessageConfiguration(
+        topic: "orders-topic",
+        producerType: "queue_producer"
+    );
+
+    // Publicar mensaje
+    await _producer.PublishMessageJsonFormatAsync(config, message);
+
+    return Ok(new { message = "Orden creada exitosamente" });
+}
+}
+
+
+#### Envío con Key (Particionamiento)
+
+[HttpPost("with-key")] public async Task<IActionResult> CreateOrderWithKey( [FromBody] Order order, [FromQuery] int? customerId) { var message = new CoelsaMessage<Order>(order, "order.created", "urn:coelsa.com.ar/orders") { // Si customerId es null, se genera un Guid; sino se usa el customerId Id = customerId?.ToString() ?? Guid.NewGuid().ToString() };
+var config = new MessageConfiguration("orders-topic", "queue_producer");
+
+await _producer.PublishMessageJsonFormatAsync(config, message);
+
+return Ok(); }
+
+
+#### Envío en Lote
+
+[HttpPost("batch")] public async Task<IActionResult> CreateOrdersBatch([FromBody] List<Order> orders) { foreach (var order in orders) { var message = new CoelsaMessage<Order>( order, "order.created", "urn:coelsa.com.ar/orders" ) { Id = Guid.NewGuid().ToString() };
+ var config = new MessageConfiguration("orders-topic", "queue_producer");
+
+    await _producer.PublishMessageJsonFormatAsync(config, message);
+}
+
+return Ok(new { message = $"Se enviaron {orders.Count} órdenes" }); }
+
+
+### 2. Consumer (Consumidor)
+
+#### Crear un Background Service Consumer
+
+using Confluent.Kafka; using Coelsa.Artifact.Kafka.Handler.Interfaces; using Microsoft.Extensions.Hosting; using Microsoft.Extensions.Logging;
+public class OrderConsumerBackgroundService : BackgroundService { private readonly ILogger<OrderConsumerBackgroundService> _logger; private readonly ICoelsaKafkaConsumer _consumerProvider; private readonly IConsumer<string, string> _consumer;
+public OrderConsumerBackgroundService(
+    ILogger<OrderConsumerBackgroundService> logger,
+    ICoelsaKafkaConsumer consumerProvider)
+{
+    _logger = logger;
+    _consumerProvider = consumerProvider;
+
+    var config = new ConsumerConfig
+    {
+        BootstrapServers = "localhost:9092",
+        GroupId = "order-processor-group",
+        AutoOffsetReset = AutoOffsetReset.Earliest,
+        EnableAutoCommit = false
+    };
+
+    _consumer = new ConsumerBuilder<string, string>(config).Build();
+    _consumer.Subscribe("orders-topic");
+}
+
+protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+{
+    _logger.LogInformation("Order Consumer iniciado");
+
+    while (!stoppingToken.IsCancellationRequested)
+    {
+        try
+        {
+            await _consumerProvider.ConsumeAsync<Order>(
+                _consumer, 
+                async (order, ct) =>
+                {
+                    _logger.LogInformation(
+                        "Procesando orden: {OrderId}, Cliente: {CustomerId}, Monto: {Amount}",
+                        order?.Id, 
+                        order?.CustomerId, 
+                        order?.TotalAmount
+                    );
+
+                    // Procesar la orden
+                    await Task.Delay(100, ct); // Simular procesamiento
+
+                    return true; // Confirmar procesamiento exitoso
+                }, 
+                stoppingToken
+            );
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Consumer detenido");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consumir mensaje");
+            await Task.Delay(1000, stoppingToken);
+        }
+    }
+}
+
+public override void Dispose()
+{
+    _consumer.Close();
+    _consumer.Dispose();
+    base.Dispose();
+}}
+
+
+#### Registrar el Background Service
+// En Program.cs builder.Services.AddHostedService<OrderConsumerBackgroundService>();
+
+
+#### Consumer con Manejo de Errores
+
+protected override async Task ExecuteAsync(CancellationToken stoppingToken) { while (!stoppingToken.IsCancellationRequested) { try { bool processed = await _consumerProvider.ConsumeAsync<Order>( _consumer, async (order, ct) => { try { await ProcessOrderAsync(order, ct); return true; // Commit del offset } catch (ValidationException ex) { _logger.LogWarning(ex, "Orden inválida, se descarta"); return true; // Commit para no reprocesar } catch (Exception ex) { _logger.LogError(ex, "Error procesando orden"); return false; // No commit, se reintentará } }, stoppingToken );
+  if (!processed)
+        {
+            await Task.Delay(5000, stoppingToken); // Esperar antes de reintentar
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error crítico en consumer");
+        await Task.Delay(10000, stoppingToken);
+    }
+} }
+
+
+
+### 3. Patrón Outbox
+
+El patrón Outbox garantiza la entrega de mensajes almacenándolos primero en SQL Server y luego procesándolos en background.
+
+#### Configurar Outbox Producer
+
+using Coelsa.Artifact.Kafka.Outbox.Services.Interfaces;
+[ApiController] [Route("api/[controller]")] public class PaymentsController : ControllerBase { private readonly IOutboxService _outboxService;
+public PaymentsController(IOutboxService outboxService)
+{
+    _outboxService = outboxService;
+}
+
+[HttpPost]
+public async Task<IActionResult> ProcessPayment([FromBody] Payment payment)
+{
+    // Crear mensaje
+    var message = new CoelsaMessage<Payment>(
+        payment, 
+        "payment.processed", 
+        "urn:coelsa.com.ar/payments"
+    )
+    {
+        Id = Guid.NewGuid().ToString()
+    };
+
+    // Guardar en Outbox (se enviará automáticamente)
+    await _outboxService.PublishQueueMessageAsync(
+        topic: "payments-topic",
+        message: message
+    );
+
+    return Ok(new { message = "Pago procesado, mensaje en cola" });
+}
+}
+
+
+#### Script SQL para Crear Tabla Outbox
+
+CREATE TABLE [dbo].[APP_OUTBOX_MESSAGES] ( [OMSG_ID] UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(), [OMSG_KEY] NVARCHAR(450) NOT NULL, [OMSG_PRODUCER_TYPE] INT NOT NULL, [OMSG_TOPIC] NVARCHAR(255) NOT NULL, [OMSG_PAYLOAD] NVARCHAR(MAX) NOT NULL, [OMSG_SPEC_VERSION] NVARCHAR(50) NOT NULL, [OMSG_SOURCE] NVARCHAR(500) NOT NULL, [OMSG_TYPE] NVARCHAR(255) NOT NULL, [OMSG_TIME] DATETIME2 NOT NULL, [OMSG_DATA_CONTENT_TYPE] NVARCHAR(100) NOT NULL, [OMSG_TRACE_ID] NVARCHAR(100), [OMSG_STATUS] INT NOT NULL DEFAULT 0, [OMSG_CREATED_AT] DATETIME2 NOT NULL DEFAULT GETUTCDATE(), [OMSG_PROCESSED_AT] DATETIME2 NULL, [OMSG_ERROR] NVARCHAR(4000) NULL, [OMSG_RETRY_COUNT] INT NOT NULL DEFAULT 0, [OSMG_NEXT_RETRY_AT] DATETIME2 NULL, [OSMG_VERSION] INT NOT NULL DEFAULT 1, [OMSG_PROCESSING_INSTANCE_ID] NVARCHAR(100) NULL, [OMSG_PROCESSING_STARTED_AT] DATETIME2 NULL, [OMSG_PROCESSING_EXPIRES_AT] DATETIME2 NULL, [OMSG_INSTANCE_ID] UNIQUEIDENTIFIER NULL, [OMSG_CLAIMED_AT] DATETIME2 NULL );
+CREATE INDEX IX_OUTBOX_STATUS_CLAIMED ON [dbo].[APP_OUTBOX_MESSAGES]([OMSG_STATUS], [OMSG_CLAIMED_AT]);
+
+
+
+## 💡 Ejemplos Avanzados
+
+### Ejemplo Completo: API con Producer y Consumer
+
+**Modelos:**
+
+public class Invoice { public string Id { get; set; } = string.Empty; public int CustomerId { get; set; } public decimal TotalAmount { get; set; } public string Currency { get; set; } = "USD"; }
+
+
+**Producer Endpoint:**
+
+app.MapPost("/kafka-producer/{amount}/{key?}", async ( [FromRoute] int amount, [FromRoute] int? key, [FromServices] ICoelsaKafkaProducer producer) => { if (amount < 1) amount = 1;
+for (int i = 0; i < amount; i++)
+{
+    var invoice = new Invoice
+    {
+        Id = Guid.NewGuid().ToString(),
+        CustomerId = i + 1,
+        TotalAmount = new Random().Next(100, 10000),
+        Currency = i % 2 == 0 ? "USD" : "ARS"
+    };
+
+    var message = new CoelsaMessage<Invoice>(
+        invoice, 
+        "invoice.created", 
+        "urn:coelsa.com.ar/billing/invoice"
+    )
+    {
+        Id = key?.ToString() ?? Guid.NewGuid().ToString()
+    };
+
+    var config = new MessageConfiguration(
+        "dev_arq_stream_updated", 
+        "queue_producer"
+    );
+
+    await producer.PublishMessageJsonFormatAsync(config, message);
+}
+
+return Results.Ok($"Se enviaron {amount} mensajes");
+}) .WithOpenApi();
+
+
+## 🔒 Seguridad
+
+### Autenticación SASL
+
+{ "KafkaSettings": { "QueueProducer": { "BootstrapServers": "kafka.coelsa.com.ar:9093", "Security": { "Username": "kafka-user", "Password": "secure-password" } } } }
+
+
+### Mejores Prácticas
+
+1. **Nunca hardcodear credenciales** en el código
+2. **Usar Azure Key Vault** para almacenar secretos
+3. **Habilitar SSL/TLS** en producción
+4. **Rotar credenciales** periódicamente
+5. **Limitar permisos** por principio de menor privilegio
+
+## 🔍 Troubleshooting
+
+### Problema: Los mensajes no se envían
+
+**Solución:** Verificar conectividad y configuración
+
+try { await _producer.PublishMessageJsonFormatAsync(config, message); } catch (ProduceException<string, string> ex) { _logger.LogError(ex, "Error produciendo mensaje: {Reason}", ex.Error.Reason); }
+
+
+### Problema: Consumer no procesa mensajes
+
+**Verificar:**
+- El `GroupId` sea único y correcto
+- El tópico exista y tenga mensajes
+- La configuración de `AutoOffsetReset`
+
+### Problema: Outbox acumula mensajes
+
+**Solución:** Verificar el Background Service
+
+// Revisar logs del servicio _logger.LogInformation("Procesados {Count} mensajes del Outbox", count);
+
+
+## 📚 Documentación Adicional
+
+- [Repositorio del proyecto](https://dev.azure.com/coelsa/Arquitectura/_git/ng-net-Kafka)
+- [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
+- [Confluent.Kafka .NET](https://docs.confluent.io/kafka-clients/dotnet/current/overview.html)
+- [CloudEvents Specification](https://cloudevents.io/)
+
+## 👥 Autores
+
+Equipo de Arquitectura - Coelsa
+
+## 📞 Soporte
+
+Para soporte técnico y consultas, contactar al equipo de arquitectura a través de los canales internos de Coelsa.
+
+---
+
+**Versión del paquete**: 10.0.0-RC  
+**Última actualización**: 2026
