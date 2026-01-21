@@ -1,0 +1,1528 @@
+<div style="background-color: rgba(0, 0, 0, 0.8); border-radius: 60px">
+
+![Banner](/.attachments/banner-d8ceca44-805f-4dd2-b8dc-8d1d3905810d.png =385x120)
+
+</div>  
+  
+**Coelsa.Artifact.Secrets**
+
+[![NuGet Version](https://img.shields.io/badge/version-8.0.0--RC-blue)](https://dev.azure.com/coelsa/Extensions/_artifacts/feed/Coelsa-F01/NuGet/Coelsa.Artifact.Secrets/overview/8.0.0-RC)
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-purple)](https://dotnet.microsoft.com/download/dotnet/8.0)
+
+  
+
+Artefacto de Cross-Cutting Concern (CCC) para la gestión centralizada y segura de secretos desde Azure Key Vault en aplicaciones .NET 8. Este paquete simplifica la integración con Azure Key Vault mediante inyección de dependencias, proporcionando acceso tipado y seguro a secretos empresariales.
+  
+
+---
+
+📋 Tabla de Contenidos
+
+[[_TOC_]]
+
+---
+
+  
+
+## 🚀 Características
+
+  
+
+- ✅ **Inyección de Dependencias**: Integración nativa con el contenedor de DI de .NET
+
+- ✅ **Tipado Fuerte**: Acceso a secretos mediante clases fuertemente tipadas con IntelliSense
+
+- ✅ **Tres Modos de Recuperación**: Flexibilidad para recuperar todos los secretos, específicos o con mapeo personalizado
+
+- ✅ **Reintentos Configurables**: Política de reintentos personalizable para resiliencia
+
+- ✅ **Manejo de Errores**: Callbacks opcionales para gestión personalizada de excepciones
+
+- ✅ **Validación Automática**: Validación de opciones en el inicio de la aplicación (`ValidateOnStart`)
+
+- ✅ **Mapeo Personalizado**: Soporte para `JsonPropertyName` en propiedades
+
+- ✅ **Service Principal Authentication**: Autenticación segura mediante Azure AD Service Principal
+
+- ✅ **Configuración automatica del Cliente**: No necesitas crear manualmente `SecretClient` o gestionar credenciales
+
+  
+
+---
+
+  
+
+## 📦 Requisitos
+
+  
+
+### Software Requerido
+
+  
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) o superior
+
+- [Visual Studio 2022](https://visualstudio.microsoft.com/vs/community/) (opcional, Community Edition o superior)
+
+  
+
+### Recursos de Azure
+
+  
+
+- **Azure Subscription** activa
+
+- **Azure Key Vault** creado y configurado
+
+- **Service Principal** registrado en Azure AD con los siguientes permisos en Key Vault:
+
+  - `Get` (obligatorio)
+
+  - `List` (obligatorio)
+
+  
+
+## 📥 Instalación
+
+  
+
+### Paso 1: Configurar el Origen de NuGet
+
+  
+
+El paquete está alojado en un feed privado de Azure Artifacts. Agrega el origen ejecutando:
+
+  
+
+```powershell
+
+dotnet nuget add source "https://pkgs.dev.azure.com/coelsa/_packaging/Coelsa-F01/nuget/v3/index.json" `
+
+  --name "Coelsa-F01" `
+
+  --username <tu-usuario-azure-devops> `
+
+  --password <tu-personal-access-token> `
+
+  --store-password-in-clear-text
+
+```
+
+  
+
+**En Visual Studio:**
+
+  
+
+1. Herramientas → Opciones → Administrador de paquetes NuGet → Orígenes de paquetes
+
+2. Haz clic en el botón **+** para agregar un nuevo origen
+
+3. Nombre: `Coelsa-F01`
+
+4. Origen: `https://pkgs.dev.azure.com/coelsa/_packaging/Coelsa-F01/nuget/v3/index.json`
+
+  
+
+### Paso 2: Instalar el Paquete
+
+  
+
+**Usando .NET CLI:**
+
+  
+
+```powershell
+
+dotnet add package Coelsa.Artifact.Secrets --prerelease
+
+```
+
+  
+
+**Usando Package Manager Console (Visual Studio):**
+
+  
+
+```powershell
+
+Install-Package Coelsa.Artifact.Secrets -Prerelease
+
+```
+
+  
+
+**Usando el Administrador de Paquetes NuGet de Visual Studio:**
+
+  
+
+1. Clic derecho en el proyecto → Administrar paquetes NuGet
+
+2. Selecciona el origen **Coelsa-F01**
+
+3. Marca la casilla **Incluir versión preliminar**
+
+4. Busca `Coelsa.Artifact.Secrets` e instala
+
+  
+
+---
+
+  
+
+## 🚦 Inicio Rápido
+
+  
+
+### 1. Configurar appsettings.json
+
+  
+
+```json
+
+{
+
+  "KeyVault": {
+
+    "Url": "https://tu-keyvault.vault.azure.net/",
+
+    "TenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+
+    "AppClientId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+
+    "SecretValue": "tu-client-secret-del-service-principal"
+
+  }
+
+}
+
+```
+
+  
+
+### 2. Crear Clase de Opciones
+
+  
+
+La clase debe contener como propiedades los mismos nombres de las key que se encuentran en el repositorio de KeyVault.
+
+  
+
+```csharp
+
+namespace MiAplicacion.Configuration;
+
+  
+
+public class SecretsSettings
+
+{
+
+    public string DatabaseConnectionString { get; init; } = string.Empty;
+
+    public string ApiKey { get; init; } = string.Empty;
+
+}
+
+```
+
+  
+
+### 3. Registrar en Program.cs
+
+  
+
+```csharp
+
+using Coelsa.Artifact.Secrets;
+
+  
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(builder.Configuration);
+
+  
+
+```
+
+  
+
+### 4. Usar en tus Servicios
+
+  
+
+```csharp
+
+using Microsoft.Extensions.Options;
+
+  
+
+[ApiController]
+
+[Route("api/[controller]")]
+
+public class ProductsController : ControllerBase
+
+{
+
+    private readonly SecretsSettings _secrets;
+
+    public ProductsController(IOptions<SecretsSettings> secrets)
+
+    {
+
+        _secrets = secrets.Value;
+
+    }
+
+    [HttpGet]
+
+    public IActionResult Get()
+
+    {
+
+        var connectionString = _secrets.DatabaseConnectionString;
+
+        // Usar el secreto...
+
+        return Ok();
+
+    }
+
+}
+
+```
+
+  
+
+---
+
+  
+
+## ⚙️ Configuración
+
+  
+
+### Parámetros de Configuración
+
+  
+
+| Parámetro | Tipo | Requerido | Default | Descripción |
+|-----------|------|-----------|---------|-------------|
+| `Url` | `string` | ✅ Sí | - | URL completa del Azure Key Vault (ej: `https://mi-vault.vault.azure.net/`) |
+| `TenantId` | `string` | ✅ Sí | - | ID del Tenant de Azure AD donde está registrado el Service Principal |
+| `AppClientId` | `string` | ✅ Sí | - | Application (Client) ID del Service Principal |
+| `SecretValue` | `string` | ✅ Sí | - | Client Secret del Service Principal |
+| `DelayInMs` | `int?` | ❌ No | `6000` | Delay inicial entre reintentos en milisegundos |
+| `MaxDelayInMs` | `int?` | ❌ No | `12000` | Delay máximo entre reintentos en milisegundos |
+| `Retries` | `int?` | ❌ No | `5` | Cantidad máxima de reintentos en caso de fallo |
+| `SpecificSecrets` | `string?` | ❌ No | `null` | Lista de secretos específicos separados por coma |
+| `SecretOptions` | `object?` | ❌ No | `null` | Diccionario de mapeo propiedad → nombre de secreto |
+
+
+### Configuración Básica
+⚠️ Los secretos para la conexión al repositorio de KeyVault no deben ser versionados. En desarrollo local con visual studio se deben agregar en secretos de usuarios.
+
+```json
+
+{
+
+  "KeyVault": {
+
+    "Url": "{secret}",
+
+    "TenantId": "{secret}",
+
+    "AppClientId": "{secret}",
+
+    "SecretValue": "{secret}"
+
+  }
+
+}
+
+```
+
+  
+
+### Configuración Avanzada con Reintentos
+
+  
+
+```json
+
+{
+
+  "KeyVault": {
+
+    "Url": "{secret}",
+
+    "TenantId": "{secret}",
+
+    "AppClientId": "{secret}",
+
+    "SecretValue": "{secret}",
+
+    "DelayInMs": 3000,
+
+    "MaxDelayInMs": 8000,
+
+    "Retries": 3
+
+  }
+
+}
+
+```
+---
+
+## 🔄 Modos de Operación
+
+El paquete soporta tres modos de recuperación de secretos. El modo se determina automáticamente según la configuración proporcionada.
+
+ 
+### Modo 1: Recuperación Completa (Predeterminado)
+ 
+
+Recupera **todos los secretos** del Key Vault cuyo nombre coincida con el patrón esperado.
+
+**Configuración:**
+
+```json
+
+{
+
+  "KeyVault": {
+
+    "Url": "{secret}",
+
+    "TenantId": "{secret}",
+
+    "AppClientId": "{secret}",
+
+    "SecretValue": "{secret}"
+
+  }
+
+}
+
+```
+
+**Convención de nombres en Azure Key Vault:**
+
+Los secretos deben seguir el patrón: `{NombrePropiedad}`
+
+**Ejemplo:**  
+
+```csharp
+
+public class SecretsSettings
+
+{
+
+    public string DatabaseConnectionString { get; init; } = string.Empty;
+
+    public string ApiKey { get; init; } = string.Empty;
+
+}
+
+```
+
+**Secretos en Key Vault:**
+
+- `DatabaseConnectionString`
+
+- `ApiKey`
+
+
+**Registro:**
+
+```csharp
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(builder.Configuration);
+
+```
+
+### Modo 2: Secretos Específicos  
+
+Recupera **únicamente los secretos listados** en `SpecificSecrets`.
+
+**Configuración:**
+
+```json
+
+{
+
+  "KeyVault": {
+
+    "Url": "{secret}",
+
+    "TenantId": "{secret}",
+
+    "AppClientId": "{secret}",
+
+    "SecretValue": "{secret}",
+
+    "SpecificSecrets": "ConnectionString,ApiKey,Certificate"
+
+  }
+
+}
+
+```
+
+
+**Clase de Opciones:**
+
+```csharp
+
+public class SecretsSettings
+
+{
+
+    public string ConnectionString { get; init; } = string.Empty;
+
+    public string ApiKey { get; init; } = string.Empty;
+
+    public string Certificate { get; init; } = string.Empty;
+
+}
+
+```
+
+  
+
+**Ventajas:**
+
+- Control preciso sobre qué secretos se cargan
+
+- Útil cuando hay muchos secretos en el Key Vault
+
+- Mejora el rendimiento al reducir las llamadas
+
+
+### Modo 3: Mapeo Personalizado (SecretOptions)
+
+Permite **mapear propiedades a nombres de secretos específicos** mediante un diccionario.
+
+**Configuración:**
+
+```json
+
+{
+
+  "KeyVault": {
+    "Url": "{secret}",
+    "TenantId": "{secret}",
+    "AppClientId": "{secret}",
+    "SecretValue": "{secret}",
+    "SecretOptions": {
+      "ConnectionString": "SqlServer-ConnectionString-Production",
+      "Certificate": "OpenTelemetry-Certificate-PROD",
+      "ApiKey": "ExternalApi-Key-v2"
+    }
+  }
+}
+
+```
+
+  
+**Clase de Opciones:**
+
+```csharp
+
+public class SecretsSettings
+
+{
+
+    public string ConnectionString { get; init; } = string.Empty;
+
+    public string Certificate { get; init; } = string.Empty;
+
+    public string ApiKey { get; init; } = string.Empty;
+
+}
+
+```
+
+**Ventajas:**
+
+- Nombres de secretos independientes de la estructura de clases
+
+- Facilita la migración de secretos sin cambiar código
+
+- Soporta convenciones de nomenclatura complejas
+
+  
+### Uso con JsonPropertyName
+
+Para propiedades con nombres diferentes al secreto:
+
+```csharp
+
+using System.Text.Json.Serialization;
+
+  
+
+public class SecretsSettings
+
+{
+
+    [JsonPropertyName("Database-ConnectionString")]
+
+    public string ConnectionString { get; init; } = string.Empty;
+
+}
+
+```
+
+---
+
+  
+
+## 💼 Uso en la Aplicación
+
+### Inyección en Controladores
+
+  
+
+```csharp
+
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.Extensions.Options;
+
+  
+
+[ApiController]
+
+[Route("api/[controller]")]
+
+public class OrdersController : ControllerBase
+
+{
+
+    private readonly SecretsSettings _secrets;
+
+    private readonly ILogger<OrdersController> _logger;
+
+    public OrdersController(
+
+        IOptions<SecretsSettings> secrets,
+
+        ILogger<OrdersController> logger)
+
+    {
+
+        _secrets = secrets.Value;
+
+        _logger = logger;
+
+    }
+
+    [HttpPost]
+
+    public async Task<IActionResult> CreateOrder([FromBody] Order order)
+
+    {
+
+        _logger.LogInformation("Conectando a base de datos...");
+
+        var connectionString = _secrets.DatabaseConnectionString;
+
+        // Usar el secreto...
+
+        return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+
+    }
+
+}
+
+```
+
+  
+
+### Inyección en Servicios
+
+  
+
+```csharp
+
+public class EmailService : IEmailService
+
+{
+
+    private readonly SecretsSettings _secrets;
+
+    public EmailService(IOptions<SecretsSettings> secrets)
+
+    {
+
+        _secrets = secrets.Value;
+
+    }
+
+    public async Task SendEmailAsync(string to, string subject, string body)
+
+    {
+
+        var apiKey = _secrets.SendGridApiKey;
+
+        // Usar SendGrid con el API Key...
+
+    }
+
+}
+
+  
+
+// Registro
+
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(builder.Configuration);
+
+```
+
+  
+
+### Acceso Directo en Program.cs
+
+  
+
+```csharp
+
+var builder = WebApplication.CreateBuilder(args);
+
+  
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(builder.Configuration);
+
+  
+
+var app = builder.Build();
+
+  
+
+var secrets = app.Services.GetRequiredService<IOptions<SecretsSettings>>().Value;
+
+Console.WriteLine($"Conectando a: {secrets.DatabaseConnectionString}");
+
+  
+
+app.Run();
+
+```
+
+  
+
+---
+
+  
+
+## ⚠️ Manejo de Errores
+
+  
+
+### Ejemplo Básico: Logging
+
+  
+
+```csharp
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(
+
+    builder.Configuration,
+
+    ex =>
+
+    {
+
+        var logger = builder.Services.BuildServiceProvider()
+
+            .GetRequiredService<ILogger<Program>>();
+
+        logger.LogError(ex, "Error al recuperar secretos de Azure Key Vault");
+
+    });
+
+```
+
+  
+
+### Ejemplo: Lanzar Excepción Personalizada
+
+  
+
+```csharp
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(
+
+    builder.Configuration,
+
+    ex =>
+
+    {
+
+        throw new InvalidOperationException(
+
+            $"No se pudieron cargar los secretos: {ex.Message}. " +
+
+            $"Verifique la conectividad con Azure Key Vault y los permisos del Service Principal.",
+
+            ex);
+
+    });
+
+```
+
+  
+
+### Ejemplo: Manejo por Tipo de Excepción
+
+```csharp
+
+using Azure;
+
+using Azure.Identity;
+
+  
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(
+
+    builder.Configuration,
+
+    ex =>
+
+    {
+
+        var logger = builder.Services.BuildServiceProvider()
+
+            .GetRequiredService<ILogger<Program>>();
+
+        switch (ex)
+
+        {
+
+            case AuthenticationFailedException authEx:
+
+                logger.LogError(authEx,
+
+                    "Error de autenticación. Verifique TenantId, AppClientId y SecretValue");
+
+                throw new UnauthorizedAccessException(
+
+                    "Credenciales inválidas para Key Vault", authEx);
+
+            case RequestFailedException reqEx when reqEx.Status == 404:
+
+                logger.LogWarning(reqEx,
+
+                    "Secreto no encontrado. Verifique los nombres en Key Vault");
+
+                break;
+
+            case RequestFailedException reqEx when reqEx.Status == 403:
+
+                logger.LogError(reqEx,
+
+                    "Acceso denegado. El Service Principal no tiene permisos");
+
+                throw new UnauthorizedAccessException(
+
+                    "Sin permisos para acceder a Key Vault", reqEx);
+
+            default:
+
+                logger.LogError(ex, "Error inesperado al cargar secretos");
+
+                if (builder.Environment.IsProduction())
+
+                {
+
+                    throw;
+
+                }
+
+                break;
+
+        }
+
+    });
+
+```
+
+  
+
+## 🔧 Configuración Avanzada
+
+  
+
+### Política de Reintentos
+
+  
+
+El paquete usa una política de reintentos **Fixed** (intervalo fijo) configurable:
+
+  
+
+```json
+
+{
+
+  "KeyVault": {
+
+    "Url": "{secret}",
+
+    "TenantId": "{secret}",
+
+    "AppClientId": "{secret}",
+
+    "SecretValue": "{secret}",
+
+    "DelayInMs": 2000,
+
+    "MaxDelayInMs": 10000,
+
+    "Retries": 5
+
+  }
+
+}
+
+```
+
+
+**Comportamiento:**
+
+- Primer intento: inmediato
+
+- Reintento 1: después de `DelayInMs` (2s)
+
+- Reintento 2: después de `DelayInMs` (2s)
+
+- ...
+
+- Reintento 5: después de `DelayInMs` (2s)
+
+- Si todos fallan: se invoca el callback `onError`  
+
+---
+
+  
+
+## ✅ Validación de Secretos
+
+  
+### Validación Básica con DataAnnotations
+
+  
+
+```csharp
+
+using System.ComponentModel.DataAnnotations;
+
+  
+
+public class SecretsSettings
+
+{
+
+    [Required(ErrorMessage = "La cadena de conexión es obligatoria")]
+
+    [MinLength(10, ErrorMessage = "La cadena de conexión parece inválida")]
+
+    public string DatabaseConnectionString { get; init; } = string.Empty;
+
+    [Required]
+
+    [RegularExpression(@"^[A-Za-z0-9-_]+$", ErrorMessage = "API Key con formato inválido")]
+
+    public string ApiKey { get; init; } = string.Empty;
+
+}
+
+```
+
+  
+
+### Validación Avanzada con FluentValidation
+
+  
+
+**Instalar paquete:**
+
+  
+
+```powershell
+
+dotnet add package FluentValidation.DependencyInjectionExtensions
+
+```
+
+  
+
+**Crear Validador:**
+
+  
+
+```csharp
+
+using FluentValidation;
+
+using Microsoft.Extensions.Options;
+
+  
+
+public class SecretsSettingsValidator : AbstractValidator<SecretsSettings>,
+
+    IValidateOptions<SecretsSettings>
+
+{
+
+    public SecretsSettingsValidator()
+
+    {
+
+        RuleFor(x => x.DatabaseConnectionString)
+
+            .NotEmpty()
+
+            .WithMessage("La cadena de conexión es requerida")
+
+            .Must(BeValidConnectionString)
+
+            .WithMessage("La cadena de conexión tiene un formato inválido");
+
+        RuleFor(x => x.ApiKey)
+
+            .NotEmpty()
+
+            .WithMessage("El API Key es requerido")
+
+            .Length(32, 128)
+
+            .WithMessage("El API Key debe tener entre 32 y 128 caracteres");
+
+    }
+
+    private bool BeValidConnectionString(string connectionString)
+
+    {
+
+        return connectionString.Contains("Server=") ||
+
+               connectionString.Contains("Data Source=");
+
+    }
+
+  
+
+    public ValidateOptionsResult Validate(string? name, SecretsSettings options)
+
+    {
+
+        var validationResult = this.Validate(options);
+
+        if (validationResult.IsValid)
+
+            return ValidateOptionsResult.Success;
+
+        var errors = string.Join("; ",
+
+            validationResult.Errors.Select(e => e.ErrorMessage));
+
+        return ValidateOptionsResult.Fail(errors);
+
+    }
+
+}
+
+```
+
+  
+
+**Registrar:**
+
+  
+
+```csharp
+
+builder.Services.AddValidatorsFromAssemblyContaining<SecretsSettingsValidator>();
+
+builder.Services.AddSingleton<IValidateOptions<SecretsSettings>, SecretsSettingsValidator>();
+
+builder.Services.AddCoelsaSecrets<SecretsSettings>(builder.Configuration);
+
+```
+
+  
+
+---
+
+  
+
+## 🎯 Mejores Prácticas
+
+### 1. Nomenclatura de Secretos
+
+Mantén una convención consistente:
+
+- ✅ {Propiedad}` → `KafkaCertificate` se debe usar PascalCase 
+
+- ❌ No utilizar caracteres especiales
+
+- ❌ No agregar el ambiente al nombre
+
+- ❌ No utilizar espacios en los nombres de secretos
+
+   
+
+### 2. Manejo de Errores  
+
+- ✅ **Siempre** proporciona un callback `onError` en producción
+
+- ✅ Registra errores en un sistema de logging/monitoreo
+
+- ✅ Diferencia el comportamiento por ambiente (dev vs prod)
+
+
+### 3. Validación
+
+- ✅ Implementa validadores para secretos críticos
+
+- ✅ Usa `ValidateOnStart` (habilitado por defecto en el paquete)
+
+- ✅ Valida formatos (ej: URLs, connection strings)
+
+- ✅ Verifica que los secretos no estén vacíos
+
+  
+### 4. Performance
+
+- ✅ Usa `SpecificSecrets` cuando solo necesites algunos secretos
+
+- ✅ Usa `SecretOptions` para mapeos complejos sin recuperar todo
+
+- ✅ Configura reintentos apropiados según tu SLA
+
+- ❌ Evita cargar secretos innecesarios
+
+
+### 5. Inmutabilidad
+
+
+```csharp
+
+public class SecretsSettings
+
+{
+
+    // ✅ Usa 'init' para propiedades inmutables
+
+    public string ApiKey { get; init; } = string.Empty;
+
+    // ❌ Evita 'set' que permite modificación posterior
+
+    // public string ApiKey { get; set; } = string.Empty;
+
+}
+
+```
+
+---
+
+  
+## 🔍 Solución de Problemas
+
+  
+### Error: "No se encuentran los parametros de configuracion"
+
+**Síntoma:**
+
+```
+
+System.ArgumentException: No se encuentran los parametros de configuracion, verifique que esta la seccion 'KeyVault'
+
+```
+
+**Causas:**
+
+- Falta la sección `KeyVault` en la configuración
+
+- El archivo `appsettings.json` no está siendo leído
+  
+
+**Solución:**
+
+1. Verifica que exista la sección `KeyVault` en `appsettings.json`
+
+2. Confirma que el archivo esté marcado como "Copy to Output Directory"
+
+3. Verifica que no haya errores de sintaxis JSON
+
+  
+### Error de Autenticación
+
+**Síntoma:**
+
+```
+
+Azure.Identity.AuthenticationFailedException: ClientSecretCredential authentication failed
+
+```
+
+  
+
+**Causas:**
+
+- `TenantId`, `AppClientId` o `SecretValue` incorrectos
+
+- Service Principal deshabilitado o expirado
+  
+
+**Solución:**
+
+1. Verifica las credenciales en Azure Portal
+
+2. Confirma que el Service Principal esté activo
+
+3. Regenera el Client Secret si es necesario
+
+4. Verifica que el `TenantId` corresponda al correcto
+
+  
+
+### Error 403: Acceso Denegado
+
+**Síntoma:**
+
+```
+
+Azure.RequestFailedException: Status: 403 (Forbidden)
+
+```
+  
+
+**Causas:**
+
+- El Service Principal no tiene permisos en el Key Vault
+
+- Las políticas de acceso están mal configuradas
+
+- No tienes conectada la vpn  
+
+**Solución:**
+
+- Conectarse a vpn.
+- Validar permisos con el equipo de identity.
+
+  
+### Error 404: Secreto No Encontrado
+
+**Síntoma:**
+
+```
+
+Azure.RequestFailedException: Status: 404 (Not Found)
+
+```
+
+**Causas:**
+
+- El nombre del secreto en Key Vault no coincide con el esperado
+
+- El secreto fue eliminado
+
+
+**Solución:**
+
+1. Verifica la nomenclatura según el modo usado
+
+3. Ajusta `SpecificSecrets` o `SecretOptions` si es necesario
+
+  
+
+### Timeout al Recuperar Secretos
+
+  
+**Síntoma:**
+
+- La aplicación tarda mucho en iniciar
+
+- Errores de timeout
+
+  
+**Causas:**
+
+- Reintentos insuficientes o delays muy largos
+
+- Problemas de red o firewall
+
+- Key Vault en región geográfica distante
+
+  
+
+**Solución:**
+
+1. Ajusta los parámetros de reintentos:
+
+```json
+
+   {
+
+     "KeyVault": {
+
+       "DelayInMs": 2000,
+
+       "MaxDelayInMs": 5000,
+
+       "Retries": 3
+
+     }
+
+   }
+
+```
+
+2. Verifica reglas de firewall en Key Vault
+
+3. Considera usar un Key Vault en la misma región
+
+
+### Secretos No Se Mapean Correctamente
+  
+
+**Síntoma:**
+
+- Propiedades tienen valores vacíos o `null`
+
+- No aparecen errores
+
+  
+**Causas:**
+
+- Nomenclatura incorrecta en Azure Key Vault
+
+- Uso incorrecto de `JsonPropertyName`
+
+  
+**Solución:**
+
+  
+**Modo Completo:**
+
+```
+
+Secreto en KV: DatabaseConnectionString
+
+Propiedad: public string DatabaseConnectionString { get; init; }
+
+```
+
+
+**Modo SpecificSecrets:**
+
+```json
+
+{
+
+  "SpecificSecrets": "DatabaseConnectionString"
+
+}
+
+```
+
+```csharp
+
+public string DatabaseConnectionString { get; init; }
+
+```
+
+  
+
+**Modo SecretOptions:**
+
+```json
+
+{
+
+  "SecretOptions": {
+
+    "DatabaseConnectionString": "SqlServer-PROD-ConnectionString"
+
+  }
+
+}
+
+```
+
+```csharp
+
+public string DatabaseConnectionString { get; init; }
+
+```
+
+  
+### Errores en Tiempo de Compilación
+
+**Síntoma:**
+
+```
+
+The type or namespace name 'AddCoelsaSecrets' could not be found
+
+```
+
+  
+
+**Solución:**
+
+1. Verifica que el paquete esté instalado:
+
+```powershell
+
+   dotnet list package | findstr Coelsa.Artifact.Secrets
+
+```
+
+2. Agrega el using correcto:
+
+```csharp
+
+   using Coelsa.Artifact.Secrets;
+
+```
+
+3. Restaura los paquetes:
+
+```powershell
+
+   dotnet restore
+
+```
+---
+
+  
+## 📚 Recursos Adicionales
+
+
+### Documentación
+
+  
+
+- **Documentación Oficial Coelsa**: [SharePoint - Arquitectura](https://coelsa.sharepoint.com/:f:/s/CTO/Es8icxgXiPxLuQ9nC0Q9bocBAZpK0mKyDNCPyfSh7QlN7Q?e=obdL8c)
+
+- **Repositorio del Proyecto**: [Azure DevOps](https://dev.azure.com/coelsa/Arquitectura/_git/ng-net-secrets)
+
+- **Azure Key Vault**: [Microsoft Docs](https://docs.microsoft.com/azure/key-vault/)
+  
+
+### Paquetes NuGet Relacionados
+
+  
+
+- [Azure.Extensions.AspNetCore.Configuration.Secrets](https://www.nuget.org/packages/Azure.Extensions.AspNetCore.Configuration.Secrets/) - v1.4.0
+
+- [Azure.Identity](https://www.nuget.org/packages/Azure.Identity/) - v1.13.2
+
+- [Azure.Security.KeyVault.Secrets](https://www.nuget.org/packages/Azure.Security.KeyVault.Secrets/) - v4.7.0
+
+  
+
+### Ejemplos Completos
+
+  
+
+Consulta el proyecto de ejemplo incluido en el repositorio:
+
+  
+
+```
+
+ng-net-secrets/
+
+├── example/
+
+│   └── ServiceApi/
+
+│       ├── Program.cs
+
+│       ├── Configuration/
+
+│       │   └── SecretsSettings.cs
+
+│       └── Controllers/
+
+│           └── ValuesController.cs
+
+```
+
+  
+
+### Soporte
+
+  
+
+Para reportar problemas o solicitar funcionalidades:
+
+  
+
+1. **Issues**: [Azure DevOps - Work Items](https://dev.azure.com/coelsa/Arquitectura/_workitems)
+
+2. **Email**: arquitectura@coelsa.com
+
+3. **Teams**: Canal de Arquitectura
+
+  
+
+---
+  
+
+## 👥 Equipo y Contribuciones
+
+  
+
+**Desarrollado por:** Equipo de Arquitectura  
+
+**Empresa:** Compensadora Electrónica S.A. (Coelsa)  
+
+**Copyright:** © 2025 Coelsa - Todos los derechos reservados
+
+  
+
+### Contribuidores
+
+  
+
+Para contribuir al proyecto, consulta las guías de contribución en el repositorio o contacta al equipo de arquitectura.
+
+  
+
+---
+
+  
+
+## 📊 Versionamiento
+
+  
+
+Este proyecto sigue [Semantic Versioning](https://semver.org/):
+
+  
+
+- **MAJOR**: Corresponde a la versión de .Net utilizada
+
+- **MINOR**: Nuevas funcionalidades o modificaciones incompatibles con versiones anteriores
+
+- **PATCH**: Nuevas funcionalidades o correcciones de errores compatibles
+
+  
+
+**Versión Actual:** `8.0.0-RC`
+**Versión Actual:** `8.0.0`
+
+---
+
+  
+
+¿Preguntas? Contacta al equipo de arquitectura en arquitectura@coelsa.com
